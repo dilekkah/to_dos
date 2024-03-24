@@ -1,0 +1,54 @@
+// importlar
+
+import Map "mo:base/HashMap";
+import Hash "mo:base/Hash";
+import Nat "mo:base/Nat";    // doğal sayı (integer)
+import Iter "mo:base/Iter";      // iteration, array'e çevirme kısmında kullanılacak.
+import Text "mo:base/Text";
+
+actor Assistant {
+
+  type ToDo = {
+    description: Text;
+    completed: Bool;
+  };
+
+  func natHash(n: Nat) : Hash.Hash {
+    Text.hash(Nat.toText(n))
+  };
+
+  var todos = Map.HashMap<Nat, ToDo>(0, Nat.equal, natHash);      // <> bu işaretlerin arasına anahtarda ne olacaksa onlar yazılır.
+  var nextID: Nat = 0;
+
+  public query func getTodos() : async [ToDo] {
+    Iter.toArray(todos.vals());    // vals = values
+
+  };
+
+  public func addToDo(description: Text) : async Nat {
+    let id = nextID;
+    todos.put(id, {description = description; completed = false});   // put metodu ile ekleme işlemi sağlanır.
+    nextID += 1;
+    id // return id,
+  };
+
+  public func completeTodo(id: Nat): async () {
+    ignore do ? {
+      let description = todos.get(id)!.description;
+      todos.put(id, {description; completed = true});
+    }
+  };
+
+  public query func showTodos() : async Text {     // query ile sorgulama işlemi yapılır.
+    var output: Text = "\n______TO-DOs_____";
+    for (todo: ToDo in todos.vals()){
+      output #= "\n" # todo.description;
+      if (todo.completed) {output #= "+"};
+    };
+    output # "\n"    // \n ile birlikte satırda boşluk bırakılır
+  }; 
+
+  public func clearCompleted() : async () {
+    todos := Map.mapFilter<Nat, ToDo, ToDo>(todos, Nat.equal, natHash, func(_, todo) {if (todo.completed) null else ?todo});
+  };
+};
